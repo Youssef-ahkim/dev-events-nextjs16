@@ -1,7 +1,7 @@
-// Central export file for all database models
+// Database models exports
 export { default as Event } from './event.model';
 export { default as Booking } from './booking.model';
 
-// Export TypeScript interfaces for type checking
+// TypeScript interfaces exports
 export type { IEvent } from './event.model';
 export type { IBooking } from './booking.model';
