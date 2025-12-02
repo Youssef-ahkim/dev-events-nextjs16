@@ -46,7 +46,7 @@ const EventTags = ({ tags }: { tags: string[] }) => (
 async function EventMainContent({ params }: { params: Promise<{ slug: string }> }) {
   // Await the params INSIDE the component, which is wrapped in Suspense
   const { slug } = await params;
-  
+
   const response = await fetch(`${BASE_URL}/api/events/${slug}`);
   const data = await response.json();
 
@@ -65,7 +65,7 @@ async function EventMainContent({ params }: { params: Promise<{ slug: string }> 
       <div className="details">
         <div className="content">
           <Image className="banner" src={image} alt={description} width={800} height={800} />
-          
+
           <section className="flex-col-gap-2">
             <h2>Overview</h2>
             <p>{overview}</p>
@@ -94,11 +94,11 @@ async function EventMainContent({ params }: { params: Promise<{ slug: string }> 
           <div className="signup-card">
             <h2>Book Your Spot</h2>
             {bookings > 0 ? (
-              <p className="text-sm">{bookings} people have already booked</p>
+              <p className="text-sm">join {bookings} people who have already booked their spots</p>
             ) : (
               <p className="text-sm">Be the first to book your spot!</p>
             )}
-            <BookEvent />
+            <BookEvent eventId={data.event._id} slug={data.event.slug} />
           </div>
         </aside>
       </div>
@@ -131,7 +131,7 @@ const EventDetailsPage = async ({ params }: { params: Promise<{ slug: string }> 
   return (
     <div>
       <section id='event'>
-        
+
         {/* Pass the promise down to the suspended component */}
         <Suspense fallback={<div className="text-center pt-10">Loading event details...</div>}>
           <EventMainContent params={params} />
@@ -139,10 +139,10 @@ const EventDetailsPage = async ({ params }: { params: Promise<{ slug: string }> 
 
         <div className="flex w-full flex-col gap-4 pt-20">
           <h2>Similar Events</h2>
-          
+
           {/* Pass the promise down here too */}
           <Suspense fallback={<div className="text-center">Loading similar events...</div>}>
-             <SimilarEventsList params={params} />
+            <SimilarEventsList params={params} />
           </Suspense>
         </div>
 
