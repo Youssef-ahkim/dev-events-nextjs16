@@ -3,20 +3,19 @@ import EventCard from '@/components/EventCard';
 import ExploreBtn from '@/components/ExploreBtn';
 import { IEvent } from '@/database/event.model';
 import { cacheLife } from 'next/cache';
-import { events } from '@/lib/constants';
+
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
 
 // 1. Create a separate component for fetching and displaying the list
 async function EventList() {
   // This fetch happens inside the Suspense boundary now
-  // const response = await fetch(`${BASE_URL}/api/events`);
-  // const { events } = await response.json();
+  const response = await fetch(`${BASE_URL}/api/events`);
+  const { events } = await response.json();
 
   return (
     <ul className='events'>
       {events && events.length > 0 ? (
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        events.map((event: any) => (
+        events.map((event: IEvent) => (
           <li className='event' key={event.title}>
             <EventCard {...event} />
           </li>
