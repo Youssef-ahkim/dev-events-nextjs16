@@ -2,6 +2,7 @@
 
 import { useState, ChangeEvent, FormEvent } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 
 // Mock interface based on your database model
 interface IEventForm {
@@ -10,6 +11,7 @@ interface IEventForm {
   overview: string;
   date: string;
   time: string;
+  venue: string;
   location: string;
   mode: string;
   audience: string;
@@ -20,13 +22,14 @@ interface IEventForm {
 }
 
 const CreateEventForm = () => {
-  // --- 1. State Management (No changes here) ---
+  // --- 1. State Management ---
   const [formData, setFormData] = useState<IEventForm>({
     title: "",
     description: "",
     overview: "",
     date: "",
     time: "",
+    venue: "",
     location: "",
     mode: "In-Person",
     audience: "General Public",
@@ -36,10 +39,14 @@ const CreateEventForm = () => {
     image: null,
   });
 
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentTag, setCurrentTag] = useState("");
   const [currentAgendaItem, setCurrentAgendaItem] = useState("");
 
-  // --- 2. Handlers (No changes here) ---
+  const router = useRouter();
+
+  // --- 2. Handlers ---
   const handleChange = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
@@ -50,6 +57,7 @@ const CreateEventForm = () => {
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+      setImageFile(file);
       const imageUrl = URL.createObjectURL(file);
       setFormData((prev) => ({ ...prev, image: imageUrl }));
     }
@@ -86,14 +94,67 @@ const CreateEventForm = () => {
     }));
   };
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    console.log("Form Submitted (Static Data):", formData);
-    alert("Event Created! Check console for data object.");
+    setIsSubmitting(true);
+
+    try {
+      if (!imageFile) {
+        throw new Error("Please upload an image");
+      }
+
+      if (formData.tags.length === 0) {
+        throw new Error("Please add at least one tag");
+      }
+
+      if (formData.agenda.length === 0) {
+        throw new Error("Please add at least one agenda item");
+      }
+
+      const data = new FormData();
+      data.append("title", formData.title);
+      data.append("description", formData.description);
+      data.append("overview", formData.overview);
+      data.append("date", formData.date);
+      data.append("time", formData.time);
+      data.append("venue", formData.venue);
+      data.append("location", formData.location);
+      // Map 'In-Person' -> 'offline' to match schema if needed, or keeping as is if schema handles it.
+      // Schema enum says: ['online', 'offline', 'hybrid']
+      // Frontend options: 'In-Person', 'Online', 'Hybrid'
+      let modeValue = formData.mode.toLowerCase();
+      if (modeValue === "in-person") modeValue = "offline";
+
+      data.append("mode", modeValue);
+      data.append("audience", formData.audience);
+      data.append("organizer", formData.organizer);
+      data.append("image", imageFile);
+      data.append("tags", JSON.stringify(formData.tags));
+      data.append("agenda", JSON.stringify(formData.agenda));
+
+      const response = await fetch("/api/events", {
+        method: "POST",
+        body: data,
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        // Use the specific error message from the backend if available
+        throw new Error(result.error || result.message || "Something went wrong");
+      }
+
+      alert("Event Created Successfully!");
+      router.push("/"); // Redirect to home page
+    } catch (error) {
+      console.error(error);
+      alert(error instanceof Error ? error.message : "Failed to create event");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // --- Glassy Styles Definition ---
-  // We define these common styles here to keep the JSX clean
   const glassContainerBtn = " bg-[#12121280]/50 rounded-md bg-clip-padding backdrop-filter backdrop-blur-xl border-b border-border-dark";
   const glassInput = "w-full p-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 outline-none transition-all backdrop-blur-sm";
   const labelStyle = "font-medium text-gray-200";
@@ -173,6 +234,7 @@ const CreateEventForm = () => {
                   file:text-sm file:font-semibold
                   file:bg-white/10 file:text-white
                   hover:file:bg-white/20 cursor-pointer"
+                required={!formData.image} // Required if no image selected yet
               />
             </div>
             {formData.image && (
@@ -211,7 +273,7 @@ const CreateEventForm = () => {
               <input
                 type="text"
                 name="time"
-                placeholder="e.g. 10:00 AM - 2:00 PM"
+                placeholder="e.g. 10:00 AM" // Updated placeholder
                 value={formData.time}
                 onChange={handleChange}
                 className={glassInput}
@@ -220,12 +282,25 @@ const CreateEventForm = () => {
             </div>
 
             <div className="flex flex-col gap-2">
-              <label className={labelStyle}>Location</label>
+              <label className={labelStyle}>Location (City/Country)</label>
               <input
                 type="text"
                 name="location"
                 placeholder="e.g. Casablanca, Morocco"
                 value={formData.location}
+                onChange={handleChange}
+                className={glassInput}
+                required
+              />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <label className={labelStyle}>Venue (Building/Address)</label>
+              <input
+                type="text"
+                name="venue"
+                placeholder="e.g. Technopark"
+                value={formData.venue}
                 onChange={handleChange}
                 className={glassInput}
                 required
@@ -256,6 +331,7 @@ const CreateEventForm = () => {
                 value={formData.audience}
                 onChange={handleChange}
                 className={glassInput}
+                required // Added required
               />
             </div>
 
@@ -339,7 +415,7 @@ const CreateEventForm = () => {
               <button
                 type="button"
                 onClick={handleAddTag}
-                 className={`px-6 py-3 rounded-lg font-medium ${glassContainerBtn}`}
+                className={`px-6 py-3 rounded-lg font-medium ${glassContainerBtn}`}
               >
                 Add
               </button>
@@ -370,10 +446,11 @@ const CreateEventForm = () => {
         <div className="pt-4">
           <button
             type="submit"
+            disabled={isSubmitting}
             // Semi-transparent green button with blur
-            className="w-full bg-green-900 hover:bg-green-600 text-white font-bold py-4 rounded-lg transition-all shadow-lg backdrop-blur-md border border-green-400/20"
+            className={`w-full bg-green-900 hover:bg-green-600 text-white font-bold py-4 rounded-lg transition-all shadow-lg backdrop-blur-md border border-green-400/20 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
-            Create Event
+            {isSubmitting ? 'Creating Event...' : 'Create Event'}
           </button>
         </div>
       </form>

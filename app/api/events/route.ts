@@ -4,18 +4,22 @@ import { v2 as cloudinary } from 'cloudinary';
 import { NextRequest, NextResponse } from "next/server";
 import Event from "@/database/event.model";
 
+// Cloudinary v2 will automatically configure itself if process.env.CLOUDINARY_URL is present.
+// We do not need to manually config unless we have separate keys.
+
 export async function POST(req: NextRequest) {
     try {
         await connectDB();
 
         const formData = await req.formData();
 
-        let event;
+        let event: any = {}; // Initialize as explicit any or stronger type if possible
 
         try {
-            event = Object.fromEntries(formData.entries());
+            const rawData = Object.fromEntries(formData.entries());
+            event = { ...rawData };
         } catch (e) {
-            return NextResponse.json({ message: 'Invalid Json data format'  }, { status: 400 });
+            return NextResponse.json({ message: 'Invalid form data format' }, { status: 400 });
         }
 
         const file = formData.get('image') as File;
@@ -48,20 +52,20 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ message: 'Event Created Successfully', event: createEvent }, { status: 201 });
 
     } catch (e) {
-        console.error(e);
-        return NextResponse.json({ message: 'Event Creation Failed', error: e instanceof Error ? e.message : 'Unknown' })
+        console.error("Error creating event:", e);
+        return NextResponse.json({ message: 'Event Creation Failed', error: e instanceof Error ? e.message : 'Unknown' }, { status: 500 }); // Return 500 for server errors
     }
 }
 
 
-export async function GET(){
-    try{
+export async function GET() {
+    try {
         await connectDB();
 
         const events = await Event.find().sort({ createdAt: -1 });
 
         return NextResponse.json({ message: 'Events Fetched Successfully', events }, { status: 200 });
     } catch (e) {
-        return NextResponse.json({ message: 'Event Fetching Failed', error: e} , { status: 500 });
+        return NextResponse.json({ message: 'Event Fetching Failed', error: e }, { status: 500 });
     }
 }

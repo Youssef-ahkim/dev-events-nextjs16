@@ -9,7 +9,7 @@ const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
 // 1. Create a separate component for fetching and displaying the list
 async function EventList() {
   // This fetch happens inside the Suspense boundary now
-  const response = await fetch(`${BASE_URL}/api/events`);
+  const response = await fetch(`${BASE_URL}/api/events`, { cache: 'no-store' });
   const { events } = await response.json();
 
   return (
@@ -30,10 +30,6 @@ async function EventList() {
 // 2. The Main Page Component
 const Page = async () => {
 
-  "use cache";
-  cacheLife("hours");
-
-
   return (
     <section>
       {/* These static elements will render immediately */}
@@ -46,7 +42,7 @@ const Page = async () => {
 
       <div className='mt-20 space-y-7'>
         <h3>Featured Events</h3>
-        
+
         {/* The Suspense boundary handles the loading state for the data */}
         <Suspense fallback={<div className="text-center">Loading events...</div>}>
           <EventList />
